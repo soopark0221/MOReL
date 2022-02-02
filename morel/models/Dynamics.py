@@ -8,7 +8,7 @@ import scipy.spatial
 import os
 import tarfile
 
-import utils
+import morel.models.utils
 
 class DynamicsNet(nn.Module):
     def __init__(self, input_dim, output_dim, n_neurons = 512, activation = nn.ReLU):
@@ -40,7 +40,7 @@ class DynamicsNet(nn.Module):
             m = layer(m)
             v = layer(v)
         return m, v
-
+    '''
     def train(self, dataloader, epochs, summary_writer = None, comet_experiment = None):
         self.swag_start = 1
         self.k_swag = 1        
@@ -105,12 +105,12 @@ class DynamicsNet(nn.Module):
                         comet_experiment.log_metric('dyn_model_avg_loss'.format(j), sum(loss_vals)/len(loss_vals), epoch*len(dataloader) + i)
             
             if epoch >= 0 : #self.swag_start:
-                new_weights = utils.flatten(self.model.parameters()) # tensor
+                new_weights = utils.flatten(self.parameters()) # tensor
                 self.first_moment = (n_swag*self.first_moment+new_weights)/(n_swag+1) # tensor
                 self.second_moment = (n_swag*self.second_moment+new_weights**2)/(n_swag+1) # tensor
                 if self.D.shape[1]==self.k_swag:
                     self.D = np.delete(self.D, 0, 1) #delete first col
-                new_D = (self.second_moment-self.first_moment**2).cpu().detach().numpy()
+                new_D = (new_weights-self.first_moment).cpu().detach().numpy()
                 self.D = np.append(self.D, new_D.reshape(new_D.shape[0],1), axis = 1) # numpy
                 n_swag +=1
         print(f'weight {sum(p.numel() for p in self.model.parameters())}')
@@ -118,12 +118,24 @@ class DynamicsNet(nn.Module):
 
     def swag(self):
         param_dict = {}
-        param_dict['theta'] = self.first_moment
-        param_dict['sigma'] = self.second_moment- self.first_moment**2
+        param_dict['theta_swa'] = self.first_moment
+        param_dict['sigma_diag'] = self.second_moment- self.first_moment**2
         param_dict['D'] = self.D
         param_dict['K'] = self.k_swag
         return param_dict        
 
+    def usad(self, predictions):
+        # Compute the pairwise distances between all predictions
+        distances = scipy.spatial.distance_matrix(predictions, predictions)
+
+        # If maximum is greater than threshold, return true
+        return (np.amax(distances) > self.threshold)
+
+    def predict(self, x):
+        # Generate prediction of next state using dynamics model
+        with torch.set_grad_enabled(False):
+            return self.forward(x)[0]
+    '''
 class BasicNet(nn.Module):
 
     def __init__(self, input_dim,  output_dim, n_neurons, activation = nn.ReLU):
@@ -173,8 +185,14 @@ class DynamicsEnsemble():
         self.optimizers[model_idx].zero_grad()
 
         # Feed forward
-        next_state_pred = self.models[model_idx](feed)
-        output = self.losses[model_idx](next_state_pred, target)
+        next_state_pred, var = self.models[model_idx](feed)
+        #output = self.losses[model_idx](next_state_pred, target)
+
+        # Feed forward
+        self.loss1 = torch.mean(torch.exp(-var)*torch.square(next_state_pred-target))
+        self.loss2 = torch.mean(var)
+        self.losses[model_idx] = 0.5*(self.loss1+self.loss2)
+        output= self.losses[model_idx]
 
         # Feed backwards
         output.backward()
@@ -202,7 +220,7 @@ class DynamicsEnsemble():
 
         for i in range(self.n_models):
             self.optimizers[i] = optimizer(self.models[i].parameters())
-            self.losses[i] = loss()
+            #self.losses[i] = loss()
 
         # Start training loop
         for epoch in range(epochs):
@@ -233,7 +251,7 @@ class DynamicsEnsemble():
     def predict(self, x):
         # Generate prediction of next state using dynamics model
         with torch.set_grad_enabled(False):
-            return torch.stack(list(map(lambda i: self.forward(i, x), range(self.n_models))))
+            return torch.stack(list(map(lambda i: self.forward(i, x)[0], range(self.n_models))))
 
     def save(self, save_dir):
         for i in range(self.n_models):
