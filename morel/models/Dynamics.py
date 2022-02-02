@@ -8,6 +8,8 @@ import scipy.spatial
 import os
 import tarfile
 
+import utils
+
 class DynamicsNet(nn.Module):
     def __init__(self, input_dim, output_dim, n_neurons = 512, activation = nn.ReLU):
         super(DynamicsNet, self).__init__()
@@ -38,9 +40,10 @@ class DynamicsNet(nn.Module):
             m = layer(m)
             v = layer(v)
         return m, v
-    '''
+
     def train(self, dataloader, epochs, summary_writer = None, comet_experiment = None):
-        
+        self.swag_start = 1
+        self.k_swag = 1        
         print(f'weight {sum(p.numel() for p in self.parameters())}')
 
         hyper_params = {
@@ -50,13 +53,22 @@ class DynamicsNet(nn.Module):
         if(comet_experiment is not None):
             comet_experiment.log_parameters(hyper_params)
 
+        # Define initial LR
+        lr_init = 0.1
+        swa_lr = 0.05
+        
         # Define optimizers and loss functions
-        self.optimizer = torch.optim.SGD(self.parameters(), lr = 0.01)
+        self.optimizer = torch.optim.SGD(self.parameters(), lr = lr_init)
         
         n_swag = 1
         step = 0
         # Start training loop
         for epoch in range(epochs):
+            
+            # LR Schedule 
+            update_lr = utils.schedule(epoch, lr_init, epochs, swa=True, swa_start=None, swa_lr=swa_lr)
+            utils.adjust_learning_rate(self.optimizer, update_lr)
+
             for i, batch in enumerate(tqdm(dataloader)):
                 # Split batch into input and output
                 feed, target = batch
@@ -66,9 +78,9 @@ class DynamicsNet(nn.Module):
                 self.optimizer.zero_grad()
 
                 # SWAG store values
-                self.first_moment = flatten(list(self.parameters()))
-                self.second_moment = torch.square(self.first_moment)
-                self.D = np.empty((self.first_moment.shape[0],0))
+                self.first_moment = utils.flatten(self.parameters()) # in tensor
+                self.second_moment = torch.square(self.first_moment) # in tensor
+                self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
                 #print(self.first_moment.size()) #531,461
                 #print(self.second_moment.size()) #531,461
 
@@ -93,26 +105,24 @@ class DynamicsNet(nn.Module):
                         comet_experiment.log_metric('dyn_model_avg_loss'.format(j), sum(loss_vals)/len(loss_vals), epoch*len(dataloader) + i)
             
             if epoch >= 0 : #self.swag_start:
-                new_weights = flatten(list(self.model.parameters()))
-                #print(f'new {len(new_weights)}')
-                #print(f'orig {len(self.first_moment)}')
-                self.first_moment = (n_swag*self.first_moment+new_weights)/(n_swag+1)
-                self.second_moment = (n_swag*self.second_moment+new_weights**2)/(n_swag+1)
-                print(self.first_moment[0])
-                print(self.second_moment[0])
+                new_weights = utils.flatten(self.model.parameters()) # tensor
+                self.first_moment = (n_swag*self.first_moment+new_weights)/(n_swag+1) # tensor
+                self.second_moment = (n_swag*self.second_moment+new_weights**2)/(n_swag+1) # tensor
                 if self.D.shape[1]==self.k_swag:
                     self.D = np.delete(self.D, 0, 1) #delete first col
                 new_D = (self.second_moment-self.first_moment**2).cpu().detach().numpy()
-                self.D = np.append(self.D, new_D.reshape(new_D.shape[0],1), axis = 1)
+                self.D = np.append(self.D, new_D.reshape(new_D.shape[0],1), axis = 1) # numpy
                 n_swag +=1
-        #self.swag_dict = self.swag()
-        #print(self.swag_dict.keys())
-        #print(self.swag_dict['theta'].size())
-        #print(self.swag_dict['sigma'].size())
-        #print(self.swag_dict['D'])
-        #print(self.swag_dict['K'])
         print(f'weight {sum(p.numel() for p in self.model.parameters())}')
-    '''
+
+
+    def swag(self):
+        param_dict = {}
+        param_dict['theta'] = self.first_moment
+        param_dict['sigma'] = self.second_moment- self.first_moment**2
+        param_dict['D'] = self.D
+        param_dict['K'] = self.k_swag
+        return param_dict        
 
 class BasicNet(nn.Module):
 
