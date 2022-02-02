@@ -22,13 +22,16 @@ from torch.utils.tensorboard import SummaryWriter
 from torch.utils.data import DataLoader, Dataset
 import torch.nn as nn
 import torch.nn.functional as F
+import itertools
 
 
 class Maze2DDataset(Dataset):
 
     def __init__(self):
         self.env = gym.make('maze2d-umaze-v1')
-        dataset = self.env.get_dataset()
+        dataset = dict(itertools.islice(self.env.get_dataset().items(), 128))
+
+        #dataset = self.env.get_dataset()
 
         # Input data
         self.source_observation = dataset["observations"][:-1]
