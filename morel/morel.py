@@ -1,6 +1,6 @@
 # morel imports
 from numpy.lib.npyio import save
-from morel.models.Dynamics import DynamicsEnsemble
+from morel.models.Dynamics import DynamicsNet
 from morel.models.Policy import PPO2
 from morel.fake_env import FakeEnv
 
@@ -21,7 +21,7 @@ class Morel():
         self.tensorboard_writer = tensorboard_writer
         self.comet_experiment = comet_experiment
 
-        self.dynamics = DynamicsEnsemble(obs_dim + action_dim, obs_dim+1, threshold = 1.0)
+        self.dynamics = DynamicsNet(obs_dim + action_dim, obs_dim+1, threshold = 1.0)
         self.policy = PPO2(obs_dim, action_dim)
 
     def train(self, dataloader, dynamics_data, log_to_tensorboard = False):
@@ -31,7 +31,7 @@ class Morel():
         self.dynamics_data = dynamics_data
 
         print("---------------- Beginning Dynamics Training ----------------")
-        self.dynamics.train(dataloader, epochs = 2, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
+        self.dynamics.train(dataloader, epochs = 3, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
         print("---------------- Ending Dynamics Training ----------------")
 
         env = FakeEnv(self.dynamics,

@@ -21,6 +21,8 @@ def flatten(params):
 def unflatten_like(vector, likeTensorList):
     #vector : list (1d)
     #liketensorlist : model.parameters()
+    if type(vector) is torch.Tensor:
+        vector = vector.detach().cpu().numpy()
     outtensor = []
     outlist = []
     i = 0
@@ -32,6 +34,22 @@ def unflatten_like(vector, likeTensorList):
         outlist.append(vector[i:i+n].view(s).detach().cpu().numpy()) # in numpy
         i += n
     return outtensor
+
+
+def unflatten_like_dict(vector, likeTensorList):
+    #vector : tensor (1d)
+    #liketensorlist : model.named_parameters()
+    assert type(vector) is torch.Tensor
+    outtensor = {}
+    i = 0
+    for name, tensor in likeTensorList: 
+        # n = module._parameters[name].numel()
+        n = tensor.numel()
+        s = tensor.shape
+        outtensor[name] = vector[i:i+n].view(s) # in tensor
+        i += n
+    return outtensor
+
 
 
 def LogSumExp(x, dim=0):

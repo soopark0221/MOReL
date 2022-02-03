@@ -52,6 +52,7 @@ class ActorCriticPolicy(nn.Module):
         x = self.h0_act(x)
         x = self.h1(x)
         x = self.h1_act(x)
+
         action_logit = self.output_layer(x)
 
         # Generate action distribution

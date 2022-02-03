@@ -8,12 +8,11 @@ import scipy.spatial
 import os
 import tarfile
 
-import morel.models.utils
+import morel.models.utils as utils
 
 class DynamicsNet(nn.Module):
-    def __init__(self, input_dim, output_dim, n_neurons = 512, activation = nn.ReLU):
+    def __init__(self, input_dim, output_dim, n_neurons = 512, activation = nn.ReLU, threshold = 1.0):
         super(DynamicsNet, self).__init__()
-
         # Validate inputs
         assert input_dim > 0
         assert output_dim > 0
@@ -23,7 +22,8 @@ class DynamicsNet(nn.Module):
         self.input_dim = input_dim
         self.output_dim = output_dim
         self.n_neurons = n_neurons
-
+        self.threshold = threshold
+        self.device = torch.device('cuda')
         # output : mean
         self.mean = nn.ModuleList()
         self.mean.append(BasicNet(self.input_dim, self.output_dim, self.n_neurons, activation))
@@ -38,14 +38,15 @@ class DynamicsNet(nn.Module):
         v = x
         for layer in self.mean:
             m = layer(m)
+        for layer in self.var:
             v = layer(v)
         return m, v
-    '''
+    
     def train(self, dataloader, epochs, summary_writer = None, comet_experiment = None):
         self.swag_start = 1
-        self.k_swag = 1        
+        self.k_swag = 2      
         print(f'weight {sum(p.numel() for p in self.parameters())}')
-
+        self.cuda()
         hyper_params = {
             "usad_threshold": self.threshold,
             "dynamics_epochs" : epochs
@@ -59,15 +60,20 @@ class DynamicsNet(nn.Module):
         
         # Define optimizers and loss functions
         self.optimizer = torch.optim.SGD(self.parameters(), lr = lr_init)
-        
+        # SWAG store values
+        self.first_moment = utils.flatten(self.parameters()) # in tensor
+        self.second_moment = torch.square(self.first_moment) # in tensor
+        self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
+        #print(self.first_moment.size()) #531,461
+        #print(self.second_moment.size()) #531,461       
         n_swag = 1
         step = 0
         # Start training loop
         for epoch in range(epochs):
             
             # LR Schedule 
-            update_lr = utils.schedule(epoch, lr_init, epochs, swa=True, swa_start=None, swa_lr=swa_lr)
-            utils.adjust_learning_rate(self.optimizer, update_lr)
+            #update_lr = utils.schedule(epoch, lr_init, epochs, swa=True, swa_start=None, swa_lr=swa_lr)
+            #utils.adjust_learning_rate(self.optimizer, update_lr)
 
             for i, batch in enumerate(tqdm(dataloader)):
                 # Split batch into input and output
@@ -77,12 +83,7 @@ class DynamicsNet(nn.Module):
                 
                 self.optimizer.zero_grad()
 
-                # SWAG store values
-                self.first_moment = utils.flatten(self.parameters()) # in tensor
-                self.second_moment = torch.square(self.first_moment) # in tensor
-                self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
-                #print(self.first_moment.size()) #531,461
-                #print(self.second_moment.size()) #531,461
+
 
                 #feed forward
                 next_state_pred, var = self.forward(feed)
@@ -104,16 +105,20 @@ class DynamicsNet(nn.Module):
                         comet_experiment.log_metric('dyn_model_{}_loss'.format(j), loss_val, epoch*len(dataloader) + i)
                         comet_experiment.log_metric('dyn_model_avg_loss'.format(j), sum(loss_vals)/len(loss_vals), epoch*len(dataloader) + i)
             
-            if epoch >= 0 : #self.swag_start:
+            if epoch >= 0:
                 new_weights = utils.flatten(self.parameters()) # tensor
                 self.first_moment = (n_swag*self.first_moment+new_weights)/(n_swag+1) # tensor
                 self.second_moment = (n_swag*self.second_moment+new_weights**2)/(n_swag+1) # tensor
                 if self.D.shape[1]==self.k_swag:
                     self.D = np.delete(self.D, 0, 1) #delete first col
                 new_D = (new_weights-self.first_moment).cpu().detach().numpy()
+                #print(f'newD current shape {new_D.shape}')
+                #print(f'newD current shape {new_D.reshape(new_D.shape[0],1)}')
+                
                 self.D = np.append(self.D, new_D.reshape(new_D.shape[0],1), axis = 1) # numpy
+                #print(f'D current shape {self.D.shape}')
                 n_swag +=1
-        print(f'weight {sum(p.numel() for p in self.model.parameters())}')
+        print(f'weight {sum(p.numel() for p in self.parameters())}')
 
 
     def swag(self):
@@ -135,7 +140,7 @@ class DynamicsNet(nn.Module):
         # Generate prediction of next state using dynamics model
         with torch.set_grad_enabled(False):
             return self.forward(x)[0]
-    '''
+    
 class BasicNet(nn.Module):
 
     def __init__(self, input_dim,  output_dim, n_neurons, activation = nn.ReLU):
