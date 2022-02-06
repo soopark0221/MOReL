@@ -1,6 +1,8 @@
 # morel imports
 from numpy.lib.npyio import save
 from morel.models.Dynamics import DynamicsNet
+from morel.models.Dynamics_ensemble import DynamicsEnsemble
+
 from morel.models.Policy import PPO2
 from morel.fake_env import FakeEnv
 
@@ -17,12 +19,27 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class Morel():
-    def __init__(self, obs_dim, action_dim, tensorboard_writer = None, comet_experiment = None):
+    def __init__(self, obs_dim, action_dim, n_neurons, threshold, batch_size, dynamics_epochs, dynamics_lr, swa_lr, swa_start, k_swag, s_swag, \
+        policy_lr, n_steps, time_steps, clip_range, entropy_coef, value_coef, policy_num_batches, gamma, lam, max_grad_norm, policy_num_train_epochs, \
+        mdl, log_dir, resume, tensorboard_writer = None, comet_experiment = None):
+
         self.tensorboard_writer = tensorboard_writer
         self.comet_experiment = comet_experiment
+        self.mdl = mdl
+        #self.dynamics = DynamicsNet(obs_dim + action_dim, obs_dim+1, threshold = 1.0)
+        if mdl == 'swag':
+            self.dynamics = DynamicsNet(obs_dim + action_dim, obs_dim+1, n_neurons, threshold, dynamics_epochs, dynamics_lr, swa_lr, swa_start, k_swag)
+        elif mdl == 'ensemble':
+            self.dynamics = DynamicsEnsemble(obs_dim + action_dim, obs_dim+1, n_neurons, threshold, dynamics_epochs)
 
-        self.dynamics = DynamicsNet(obs_dim + action_dim, obs_dim+1, threshold = 1.0)
         self.policy = PPO2(obs_dim, action_dim)
+        self.n_steps = n_steps
+        self.time_steps = time_steps
+        self.gamma = gamma
+        self.lam = lam
+        self.s_swag = s_swag
+        self.log_dir = log_dir
+        self.resume = resume
 
     def train(self, dataloader, dynamics_data, log_to_tensorboard = False):
         if(self.comet_experiment is not None):
@@ -31,10 +48,15 @@ class Morel():
         self.dynamics_data = dynamics_data
 
         print("---------------- Beginning Dynamics Training ----------------")
-        self.dynamics.train(dataloader, epochs = 3, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
+        if self.resume is not None:
+            self.dynamics.load(self.log_dir)
+        else :     
+            self.dynamics.train(dataloader, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
+            self.dynamics.save(self.log_dir)
+
         print("---------------- Ending Dynamics Training ----------------")
 
-        env = FakeEnv(self.dynamics,
+        env = FakeEnv(self.dynamics, self.mdl, self.s_swag,
                             self.dynamics_data.observation_mean,
                             self.dynamics_data.observation_std,
                             self.dynamics_data.action_mean,
@@ -46,7 +68,8 @@ class Morel():
                             self.dynamics_data.initial_obs_mean,
                             self.dynamics_data.initial_obs_std,
                             self.dynamics_data.source_observation,
-                            uncertain_penalty=-50.0)
+                            uncertain_penalty=-50.0,
+                            )
 
         print("---------------- Beginning Policy Training ----------------")
         self.policy.train(env, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
@@ -97,7 +120,7 @@ class Morel():
         print("---------------- Beginning Policy Evaluation ----------------")
         total_rewards = []
         for i in tqdm(range(50)):
-            _, _, _, _, _, _, _, info = self.policy.generate_experience(env, 1024, 0.95, 0.99)
+            _, _, _, _, _, _, _, info = self.policy.generate_experience(env, self.n_steps, self.gamma, self.lam)
             total_rewards.extend(info["episode_rewards"])
 
             if(self.tensorboard_writer is not None):
@@ -106,6 +129,7 @@ class Morel():
             if(self.comet_experiment is not None):
                 self.comet_experiment.log_metric('eval_episode_reward', sum(info["episode_rewards"])/len(info["episode_rewards"]), step = i)
 
+        print("Final total reward: {}".format(total_rewards))
 
         print("Final evaluation reward: {}".format(sum(total_rewards)/len(total_rewards)))
 

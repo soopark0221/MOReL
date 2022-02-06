@@ -282,8 +282,8 @@ def predictions(test_loader, model, seed=None, cuda=True, regression=False, **kw
 
 
 def schedule(epoch, lr_init, epochs, swa, swa_start=None, swa_lr=None):
-    t = (epoch) / (swa_start if swa else epochs)
-    lr_ratio = swa_lr / lr_init if swa else 0.01
+    t = epoch/swa_start
+    lr_ratio = swa_lr / lr_init
     if t <= 0.5:
         factor = 1.0
     elif t <= 0.9:

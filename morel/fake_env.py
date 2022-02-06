@@ -4,9 +4,9 @@ import numpy as np
 import torch
 
 import morel.models.utils as utils
-
+import os
 class FakeEnv:
-    def __init__(self, dynamics_model,
+    def __init__(self, dynamics_model, mdl, s_swag,
                         obs_mean,
                         obs_std,
                         action_mean,
@@ -20,7 +20,8 @@ class FakeEnv:
                         start_states,
                         timeout_steps = 300,
                         uncertain_penalty = -100,
-                        device = "cuda:0"):
+                        device = "cuda:0",
+                        ):
         self.dynamics_model = dynamics_model
         
         #print(f'weight {sum(p.numel() for p in self.dynamics_model.parameters())}')
@@ -49,6 +50,18 @@ class FakeEnv:
         self.timeout_steps = timeout_steps
 
         self.state = None
+        self.mdl = mdl
+        self.s_swag = s_swag
+
+        # swag related variables
+        if self.mdl == 'swag':
+
+            self.param_dict = self.dynamics_model.swag()
+            self.K = self.param_dict["K"]
+            self.var = torch.clamp(self.param_dict["sigma_diag"], 1e-30).cuda()
+            self.sqrt_var = self.var.sqrt()
+            self.cov = torch.tensor(self.param_dict["D"], dtype=torch.float32).cuda()
+            self.inv_sqrt_Kminus1 = (1 / torch.sqrt(torch.tensor(self.K-1)))
 
     def reset(self):
         idx = np.random.choice(self.start_states.shape[0])
@@ -69,48 +82,67 @@ class FakeEnv:
             # self.state = torch.unsqueeze(self.state,0)
             print(self.state.shape)
             print(action.shape)
-        S = 4
-        param_dict = self.dynamics_model.swag()
-        predictions = np.zeros((0, self.output_dim))
-        for s in range(S):
-            K = param_dict["K"]
-            print(f'K is {K}')
-            print(f'D is {param_dict["D"]}')            
-            print(f'D type is {type(param_dict["D"])}')
+        
+        if self.mdl == 'ensemble':
+            predictions = self.dynamics_model.predict(torch.cat([self.state, action],0))
+        
+        elif self.mdl == 'swag':
+            pred_list = []      
+            theta_list = []
+            sampled_theta_list = []
+            for s in range(self.s_swag):
+                #print(f'K is {K}')
+                #print(f'D is {param_dict["D"]}')            
+                #print(f'D type is {type(param_dict["D"])}')
 
-            # Draw diagonal variance sample
-            var = torch.clamp(param_dict["sigma_diag"], 1e-30)
-            var_sample = var.sqrt() * torch.randn_like(var, requires_grad=False) # tensor
-            var_sample = var_sample.detach().cpu() # size (p)
+                # Draw diagonal variance sample
+                z1 = torch.randn_like(self.var, requires_grad=False)
+                var_sample = self.sqrt_var * z1 # tensor
+                # var_sample = var_sample.cuda() XXX check var_sample is in cuda
 
-            # Draw low rank sample 
-            #cov_sample = (1 / np.sqrt(2 * (K - 1))) * (param_dict["D"] @ np.random.normal(np.zeros((K,)), np.ones((K,)))) # numpy
-            cov_sample = (1 / np.sqrt(2 * (K-1))) * torch.tensor(param_dict["D"], dtype=torch.float32).matmul(torch.randn((K,1))) # tensor # size (p,1)
-            cov_sample = torch.flatten(cov_sample, 0) # size (p)
-            print(f'cov  {cov_sample}')
-            print(f'var  {var_sample}')
+                # Draw low rank sample 
+                #cov_sample = (1 / np.sqrt(2 * (K - 1))) * (param_dict["D"] @ np.random.normal(np.zeros((K,)), np.ones((K,)))) # numpy
+                z2 = torch.randn((self.K,1)).cuda()
+                cov_sample = self.inv_sqrt_Kminus1 * self.cov.matmul(z2) # tensor # size (p,1)
+                cov_sample = torch.flatten(cov_sample, 0) # size (p)
+                #print(f'cov  {cov_sample}')
+                #print(f'var  {var_sample}')
 
-            rand_sample = var_sample+cov_sample #tensor # size (p)
+
+
+                rand_sample = var_sample+cov_sample #tensor # size (p)
+                theta_list.append(rand_sample[10])
+        
+                sample = self.param_dict['theta_swa']+1/np.sqrt(2)*rand_sample #tensor # size (p)
+                sampled_theta_list.append(sample[10])
+                #print(sample.size())
+                assert type(sample) is torch.Tensor
+
+                #sample = torch.unsqueeze(sample, 0) # size (1, p)
+                #print(sample.size())
+
+                sample_dict = utils.unflatten_like_dict(sample, self.dynamics_model.named_parameters())
                 
-            sample = param_dict['theta_swa'].detach().cpu()+1/np.sqrt(2)*rand_sample #tensor # size (p)
-            print(sample.size())
-            
-            assert type(sample) is torch.Tensor
+                state_dict = self.dynamics_model.state_dict()
+                for name, _ in self.dynamics_model.named_parameters():
+                    state_dict[name] = sample_dict[name]
+                self.dynamics_model.load_state_dict(state_dict)
+                # pred = self.dynamics_model.predict(torch.cat([self.state, action],0)).detach().cpu()
+                pred = self.dynamics_model.predict(torch.cat([self.state, action],0))
+                #predictions = np.append(predictions, pred)
+                # predictions = np.append(predictions, pred.reshape(1, self.output_dim),0)
+                pred_list.append(pred)
+                #print(f'first predictions {predictions}')
+                #torch.save(self.dynamics_model.state_dict(), os.path.join('result/', f'dynamics{s}.pt'))
 
-            #sample = torch.unsqueeze(sample, 0) # size (1, p)
-            #print(sample.size())
+    
+            #predictions = torch.tensor(predictions, device = 'cuda').float()
+            predictions = torch.stack(pred_list, axis=0).float()
+            #predictions = self.dynamics_model.predict(torch.cat([self.state, action],0))
+            #print(f'predictions {predictions}')
+            #print(f'theta list {theta_list}')
+            #print(f'sampled theta list {sampled_theta_list}')
 
-            sample_dict = utils.unflatten_like_dict(sample, self.dynamics_model.named_parameters())
-            for name, _ in self.dynamics_model.named_parameters():
-                self.dynamics_model.state_dict()[name] = sample_dict[name]
-            pred = self.dynamics_model.predict(torch.cat([self.state, action],0)).detach().cpu()
-            #predictions = np.append(predictions, pred)
-            predictions = np.append(predictions, pred.reshape(1, self.output_dim),0)
-            print(f'first predictions {predictions}')
- 
-        predictions = torch.tensor(predictions, device = 'cuda').float()
-        #predictions = self.dynamics_model.predict(torch.cat([self.state, action],0))
-        print(f'predictions {predictions}')
         deltas = predictions[:,0:self.output_dim-1]
 
         rewards = predictions[:,-1]
@@ -137,12 +169,12 @@ class FakeEnv:
         self.steps_elapsed += 1
         # print("reward {}\tuncertain{}".format(reward_out, uncertain))
         # input()
-        print(f'deltas_unnormalized {deltas_unnormalized}')
-        print(f'state_unnormalized {state_unnormalized}')
-        print(f'next_obs {next_obs}')
-        print(f'self.state {self.state}')
-        print(f'uncertain {uncertain}')
-        print(f'reward_out {reward_out}')
+        #print(f'deltas_unnormalized {deltas_unnormalized}')
+        #print(f'state_unnormalized {state_unnormalized}')
+        #print(f'next_obs {next_obs}')
+        #print(f'self.state {self.state}')
+        #print(f'uncertain {uncertain}')
+        #print(f'reward_out {reward_out}')
         return next_obs, reward_out, (uncertain or self.steps_elapsed > self.timeout_steps), {"HALT" : uncertain}
 
         '''

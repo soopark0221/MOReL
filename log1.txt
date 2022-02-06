@@ -1,0 +1,45 @@
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+---------------- Beginning Dynamics Training ----------------
+weight 1062922
+ first_moment is -0.08755716681480408
+second moment is 0.008275454863905907
+new D is -0.02468191832304001
+ first_moment is -0.09791108220815659
+second moment is 0.010207118466496468
+new D is -0.02070782333612442
+weight 1062922
+D is [[ 0.00174411  0.00468802]
+ [-0.01263882 -0.01513172]
+ [ 0.023061    0.02035534]
+ ...
+ [-0.23311022 -0.31812462]
+ [-0.23851448 -0.32292068]
+ [-0.3057133  -0.43571317]]
+---------------- Ending Dynamics Training ----------------
+---------------- Beginning Policy Training ----------------
+---------------- Ending Policy Training ----------------
+---------------- Successfully Completed Training ----------------
+---------------- Beginning Policy Evaluation ----------------
+Final total reward: [0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 126.0, 0, 49.0, 45.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 26.0, 0, 0.0, 0.0, 34.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 124.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 51.0, 97.0, 0, 0.0, 60.0, 0.0, 0, 0.0, 89.0, 23.0, 0, 0.0, 0.0, 54.0, 0, 0.0, 0.0, 0.0, 0, 170.0, 0.0, 124.0, 0, 0.0, 0.0, 27.0, 0, 183.0, 42.0, 0.0, 0, 0.0, 65.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 91.0, 0.0, 92.0, 0, 81.0, 0.0, 0.0, 0, 0.0, 137.0, 0.0, 0, 0.0, 108.0, 0.0, 0, 0.0, 44.0, 67.0, 0, 0.0, 0.0, 122.0, 0, 76.0, 0.0, 103.0, 0, 127.0, 115.0, 37.0, 0, 0.0, 0.0, 124.0, 0, 116.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 124.0, 0.0, 0, 0.0, 0.0, 149.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 33.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 81.0, 0, 82.0, 0.0, 0.0, 0, 177.0, 0.0, 0.0, 0, 49.0, 0.0, 0.0, 0, 66.0, 73.0, 128.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 50.0, 0, 0.0, 36.0, 72.0, 0, 69.0, 0.0, 0.0, 0, 0.0, 0.0, 105.0, 0, 0.0, 236.0, 0.0, 0, 0.0, 0.0, 0.0]
+Final evaluation reward: 21.795
+---------------- Ending Policy Evaluation ----------------
