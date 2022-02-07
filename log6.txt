@@ -1,0 +1,69 @@
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+---------------- Beginning Dynamics Training ----------------
+weight 1062922
+ first_moment is -0.010137386620044708
+second moment is 0.00046817323891445994
+new D is -0.019115611910820007
+ first_moment is -0.017280519008636475
+second moment is 0.000644269457552582
+new D is -0.014286264777183533
+ first_moment is -0.02108081430196762
+second moment is 0.0007469673873856664
+new D is -0.011400889605283737
+ first_moment is -0.023039892315864563
+second moment is 0.0007882420322857797
+new D is -0.007836315780878067
+ first_moment is -0.024342006072402
+second moment is 0.000815515173599124
+new D is -0.006510565057396889
+ first_moment is -0.025118716061115265
+second moment is 0.0008256969158537686
+new D is -0.004660256206989288
+ first_moment is -0.025694632902741432
+second moment is 0.0008329395204782486
+new D is -0.004031416028738022
+ first_moment is -0.026350324973464012
+second moment is 0.0008513127686455846
+new D is -0.00524553470313549
+ first_moment is -0.026869332417845726
+second moment is 0.0008656612480990589
+new D is -0.004671087488532066
+ first_moment is -0.027567800134420395
+second moment is 0.0008954986114986241
+new D is -0.006984647363424301
+weight 1062922
+D is [[ 0.01824021  0.01776506  0.01985991  0.01750636  0.01810214]
+ [ 0.02017821  0.02656119  0.02796032  0.02956151  0.02776744]
+ [ 0.00611127  0.00834559  0.01025552  0.00890162  0.00771573]
+ ...
+ [-0.26420414 -0.23823482 -0.26351166 -0.27279693 -0.31395096]
+ [-0.32147318 -0.32124335 -0.28860807 -0.30210119 -0.30826455]
+ [-0.61065292 -0.60833073 -0.63270652 -0.67065501 -0.66852522]]
+---------------- Ending Dynamics Training ----------------
+---------------- Beginning Policy Training ----------------
+---------------- Ending Policy Training ----------------
+---------------- Successfully Completed Training ----------------
+---------------- Beginning Policy Evaluation ----------------
+Final total reward: [0, 19.0, 0.0, 0.0, 0, 0.0, 0.0, 26.0, 0, 0.0, 15.0, 0.0, 0, 0.0, 17.0, 0.0, 0, 0.0, 20.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 18.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 7.0, 0, 18.0, 0.0, 0.0, 0, 0.0, 0.0, 20.0, 0, 0.0, 21.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 20.0, 0.0, 19.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 16.0, 17.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 21.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 20.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 7.0, 0, 0.0, 20.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 18.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 19.0, 0, 20.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 18.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 19.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 15.0, 0, 0.0, 0.0, 0.0]
+Final evaluation reward: 2.15
+---------------- Ending Policy Evaluation ----------------
