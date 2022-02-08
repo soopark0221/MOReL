@@ -21,7 +21,7 @@ import torch.nn.functional as F
 class Morel():
     def __init__(self, obs_dim, action_dim, n_neurons, threshold, batch_size, dynamics_epochs, dynamics_lr, swa_lr, swa_start, k_swag, s_swag, \
         policy_lr, n_steps, time_steps, clip_range, entropy_coef, value_coef, policy_num_batches, gamma, lam, max_grad_norm, policy_num_train_epochs, \
-        mdl, log_dir, resume, tensorboard_writer = None, comet_experiment = None):
+        mdl, log_dir, resume, idx, tensorboard_writer = None, comet_experiment = None):
 
         self.tensorboard_writer = tensorboard_writer
         self.comet_experiment = comet_experiment
@@ -40,7 +40,7 @@ class Morel():
         self.s_swag = s_swag
         self.log_dir = log_dir
         self.resume = resume
-
+        self.idx = idx
     def train(self, dataloader, dynamics_data, log_to_tensorboard = False):
         if(self.comet_experiment is not None):
             self.comet_experiment.log_parameter("uncertain_penalty", -50)
@@ -48,15 +48,15 @@ class Morel():
         self.dynamics_data = dynamics_data
 
         print("---------------- Beginning Dynamics Training ----------------")
-        if self.resume is not None:
-            self.dynamics.load(self.log_dir)
-        else :     
+        #if self.resume is not None:
+        #    self.dynamics.load(self.log_dir)
+        if self.resume is None :     
             self.dynamics.train(dataloader, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
-            self.dynamics.save(self.log_dir)
+            self.dynamics.save(self.log_dir, self.idx)
 
         print("---------------- Ending Dynamics Training ----------------")
 
-        env = FakeEnv(self.dynamics, self.mdl, self.s_swag,
+        env = FakeEnv(self.dynamics, self.mdl, self.s_swag, self.resume, self.log_dir, self.idx,
                             self.dynamics_data.observation_mean,
                             self.dynamics_data.observation_std,
                             self.dynamics_data.action_mean,
@@ -72,7 +72,7 @@ class Morel():
                             )
 
         print("---------------- Beginning Policy Training ----------------")
-        self.policy.train(env, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
+        self.policy.train(env, time_steps = self.time_steps, summary_writer = self.tensorboard_writer, comet_experiment = self.comet_experiment)
         print("---------------- Ending Policy Training ----------------")
 
         print("---------------- Successfully Completed Training ----------------")
@@ -135,16 +135,16 @@ class Morel():
 
         print("---------------- Ending Policy Evaluation ----------------")
 
-    def save(self, save_dir):
+    def save(self, save_dir, idx):
         if(not os.path.isdir(save_dir)):
             os.mkdir(save_dir)
 
         self.policy.save(save_dir)
-        self.dynamics.save(save_dir)
+        self.dynamics.save(save_dir, idx)
 
-    def load(self, load_dir):
+    def load(self, load_dir, idx):
         self.policy.load(load_dir)
-        self.dynamics.load(load_dir)
+        self.dynamics.load(load_dir, idx)
 
 
 

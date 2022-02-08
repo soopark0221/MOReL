@@ -16,6 +16,7 @@ import gym
 import d4rl
 
 from morel.morel import Morel
+#from morel_multiswag.morel import Morel_multiswag
 import torch
 import torchvision
 from torch.utils.tensorboard import SummaryWriter
@@ -29,9 +30,8 @@ class Maze2DDataset(Dataset):
 
     def __init__(self):
         self.env = gym.make('maze2d-umaze-v1')
-        dataset = dict(itertools.islice(self.env.get_dataset().items(), 64))
-
-        #dataset = self.env.get_dataset()
+        #dataset = dict(itertools.islice(self.env.get_dataset().items(), 64))
+        dataset = self.env.get_dataset()
 
         # Input data
         self.source_observation = dataset["observations"][:-1]
@@ -129,9 +129,9 @@ def main(args):
             )
             comet_experiment.set_name(args.exp_name)
 
-            # Get hash for latest git commit for logging
+            # Get hash for latest git commit for loggings
             last_commit_hash = subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode("utf-8").rstrip()
-            comet_experiment.log_parameter("git_commit_id", last_commit_hash)
+            comet_experiment.log_parameter("git_commit_id", last_commit_hash)     
 
     # Instantiate dataset
     dynamics_data = Maze2DDataset()
@@ -141,13 +141,13 @@ def main(args):
 
     agent = Morel(args.obs_dim, args.action_dim, args.n_neurons, args.threshold, args.batch_size, args.dynamics_epochs, args.dynamics_lr, args.swa_lr, args.swa_start, args.k_swag, args.s_swag, \
             args.policy_lr, args.n_steps, args.time_steps, args.clip_range, args.entropy_coef, args.value_coef, args.policy_num_batches, args.gamma, args.lam, args.max_grad_norm, args.policy_num_train_epochs,\
-            args.mdl, args.log_dir, args.resume, tensorboard_writer = tensorboard_writer, comet_experiment = comet_experiment)
+            args.mdl, args.log_dir, args.resume, args.idx, tensorboard_writer = tensorboard_writer, comet_experiment = comet_experiment)
         
 
     agent.train(dataloader, dynamics_data)
 
     #if(not args.no_log):
-    agent.save(os.path.join(run_log_dir, "models"))
+    #agent.save(os.path.join(run_log_dir, "models"))
     if comet_experiment is not None:
         upload_assets(comet_experiment, run_log_dir)
 
@@ -189,6 +189,12 @@ if __name__ == '__main__':
         default = 1.5,
         help = "threshold ",
     )
+    parser.add_argument(
+        "--idx",
+        type = int,
+        default = 1,
+        help = "ckpt idx",
+    )    
     parser.add_argument(
         "--batch_size",
         type = int,

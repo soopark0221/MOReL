@@ -1,0 +1,30 @@
+The Zen of Python, by Tim Peters
+
+Beautiful is better than ugly.
+Explicit is better than implicit.
+Simple is better than complex.
+Complex is better than complicated.
+Flat is better than nested.
+Sparse is better than dense.
+Readability counts.
+Special cases aren't special enough to break the rules.
+Although practicality beats purity.
+Errors should never pass silently.
+Unless explicitly silenced.
+In the face of ambiguity, refuse the temptation to guess.
+There should be one-- and preferably only one --obvious way to do it.
+Although that way may not be obvious at first unless you're Dutch.
+Now is better than never.
+Although never is often better than *right* now.
+If the implementation is hard to explain, it's a bad idea.
+If the implementation is easy to explain, it may be a good idea.
+Namespaces are one honking great idea -- let's do more of those!
+---------------- Beginning Dynamics Training ----------------
+---------------- Ending Dynamics Training ----------------
+---------------- Beginning Policy Training ----------------
+---------------- Ending Policy Training ----------------
+---------------- Successfully Completed Training ----------------
+---------------- Beginning Policy Evaluation ----------------
+Final total reward: [0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 65.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 28.0, 0.0, 0, 0.0, 0.0, 192.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 54.0, 0.0, 0, 0.0, 226.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 178.0, 0.0, 0, 136.0, 0.0, 0.0, 0, 88.0, 0.0, 0.0, 0, 217.0, 139.0, 0.0, 0, 47.0, 64.0, 136.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 195.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 40.0, 92.0, 173.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 85.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 70.0, 0, 0.0, 56.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 141.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 229.0, 28.0, 0, 0.0, 0.0, 0.0, 0, 207.0, 0.0, 160.0, 0, 0.0, 0.0, 185.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 206.0, 157.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 154.0, 0.0, 0.0, 0, 140.0, 163.0, 0.0, 0, 0.0, 79.0, 119.0, 0, 0.0, 0.0, 38.0, 0, 0.0, 67.0, 0.0, 0, 0.0, 87.0, 0.0, 0, 88.0, 0.0, 0.0, 0, 0.0, 0.0, 0.0, 0, 0.0, 0.0, 63.0, 0, 0.0, 0.0, 139.0, 0, 0.0, 109.0, 0.0]
+Final evaluation reward: 24.2
+---------------- Ending Policy Evaluation ----------------

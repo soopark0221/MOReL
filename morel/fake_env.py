@@ -6,7 +6,7 @@ import torch
 import morel.models.utils as utils
 import os
 class FakeEnv:
-    def __init__(self, dynamics_model, mdl, s_swag,
+    def __init__(self, dynamics_model, mdl, s_swag, resume, log_dir, idx,
                         obs_mean,
                         obs_std,
                         action_mean,
@@ -52,16 +52,25 @@ class FakeEnv:
         self.state = None
         self.mdl = mdl
         self.s_swag = s_swag
-
+        self.resume = resume
+        self.log_dir = log_dir
+        self.idx = idx
         # swag related variables
         if self.mdl == 'swag':
-
-            self.param_dict = self.dynamics_model.swag()
-            self.K = self.param_dict["K"]
-            self.var = torch.clamp(self.param_dict["sigma_diag"], 1e-30).cuda()
-            self.sqrt_var = self.var.sqrt()
-            self.cov = torch.tensor(self.param_dict["D"], dtype=torch.float32).cuda()
-            self.inv_sqrt_Kminus1 = (1 / torch.sqrt(torch.tensor(self.K-1)))
+            if self.resume is not None:
+                self.param_dict = dynamics_model.load(self.log_dir,self.idx)
+                self.K = self.param_dict["K"]
+                self.var = torch.clamp(self.param_dict["sigma_diag"], 1e-30).cuda()
+                self.sqrt_var = self.var.sqrt()
+                self.cov = torch.tensor(self.param_dict["D"], dtype=torch.float32).cuda()
+                self.inv_sqrt_Kminus1 = (1 / torch.sqrt(torch.tensor(self.K-1)))
+            else:
+                self.param_dict = self.dynamics_model.swag()
+                self.K = self.param_dict["K"]
+                self.var = torch.clamp(self.param_dict["sigma_diag"], 1e-30).cuda()
+                self.sqrt_var = self.var.sqrt()
+                self.cov = torch.tensor(self.param_dict["D"], dtype=torch.float32).cuda()
+                self.inv_sqrt_Kminus1 = (1 / torch.sqrt(torch.tensor(self.K-1)))
 
     def reset(self):
         idx = np.random.choice(self.start_states.shape[0])
@@ -107,9 +116,6 @@ class FakeEnv:
                 cov_sample = torch.flatten(cov_sample, 0) # size (p)
                 #print(f'cov  {cov_sample}')
                 #print(f'var  {var_sample}')
-
-
-
                 rand_sample = var_sample+cov_sample #tensor # size (p)
                 theta_list.append(rand_sample[10])
         

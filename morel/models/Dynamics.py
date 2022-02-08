@@ -40,6 +40,10 @@ class DynamicsNet(nn.Module):
         self.var = nn.ModuleList()
         self.var.append(BasicNet(self.input_dim, self.output_dim, self.n_neurons, activation))
 
+        # SWAG store values
+        self.first_moment = utils.flatten(self.parameters()).to(self.device) # in tensor
+        self.second_moment = torch.square(self.first_moment).to(self.device) # in tensor
+        self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
     def forward(self, x):
         m = x
         v = x
@@ -62,9 +66,9 @@ class DynamicsNet(nn.Module):
         # Define optimizers and loss functions
         self.optimizer = torch.optim.SGD(self.parameters(), lr = self.dynamics_lr)
         # SWAG store values
-        self.first_moment = utils.flatten(self.parameters()) # in tensor
-        self.second_moment = torch.square(self.first_moment) # in tensor
-        self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
+        #self.first_moment = utils.flatten(self.parameters()) # in tensor
+        #self.second_moment = torch.square(self.first_moment) # in tensor
+        #self.D = np.empty((self.first_moment.shape[0],0)) # in numpy
         #print(self.first_moment.size()) #531,461
         #print(self.second_moment.size()) #531,461       
         n_swag = 1
@@ -138,6 +142,14 @@ class DynamicsNet(nn.Module):
         param_dict['K'] = self.k_swag
         return param_dict        
 
+    def load_swag(self, net):
+        param_dict = {}
+        param_dict['theta_swa'] = net['theta_swa']
+        param_dict['sigma_diag'] = net['sigma_diag']
+        param_dict['D'] = net['D']
+        param_dict['K'] = net['K']
+        return param_dict 
+
     def usad(self, predictions):
         # Compute the pairwise distances between all predictions
         distances = scipy.spatial.distance_matrix(predictions, predictions)
@@ -150,11 +162,16 @@ class DynamicsNet(nn.Module):
         with torch.set_grad_enabled(False):
             return self.forward(x)[0]
 
-    def save(self, save_dir):
-        torch.save(self.state_dict(), os.path.join(save_dir, "dynamics.pt"))
-    def load(self, load_dir):
-        self.load_state_dict(torch.load(os.path.join(load_dir, "dynamics.pt")))
-
+    def save(self, save_dir, idx):
+        param = self.state_dict()
+        param.update(self.swag())
+        torch.save(param, os.path.join(save_dir, f'dynamics{idx}.pt'))
+    def load(self, load_dir, idx):
+        net = torch.load(os.path.join(load_dir, "dynamics.pt"))
+        param_dict = self.load_swag(net)
+        self.load_state_dict(torch.load(os.path.join(load_dir, f'dynamics{idx}.pt')), strict=False)
+        self.cuda()
+        return param_dict
 
 class BasicNet(nn.Module):
 

@@ -64,7 +64,7 @@ class BasicNet(nn.Module):
 
 
 class DynamicsEnsemble():
-    def __init__(self, input_dim, output_dim, n_neurons, threshold, dynamics_epochs, n_models = 4, n_layers = 2, activation = nn.ReLU, cuda = True):
+    def __init__(self, input_dim, output_dim, n_neurons, threshold, dynamics_epochs, n_models = 10, n_layers = 2, activation = nn.ReLU, cuda = True):
         self.n_models = n_models
 
         self.threshold = threshold
